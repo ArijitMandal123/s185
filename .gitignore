@@ -1,0 +1,76 @@
+# ===================== #
+#     Python backend    #
+# ===================== #
+
+# Ignore Python bytecode and cache
+backend/__pycache__/
+backend/*.py[cod]
+backend/*.pyo
+
+# Environment & secrets
+backend/.env
+backend/service-account.json
+backend/*.key
+backend/*.pem
+backend/credentials.json
+backend/token.json
+
+# Dependency and build artifacts
+backend/*.egg-info/
+backend/.pytest_cache/
+backend/.vscode/
+backend/.venv/
+*.log
+
+# ===================== #
+#     Frontend (Node)   #
+# ===================== #
+
+# Node modules and cache
+frontend/node_modules/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/dist/
+frontend/build/
+
+# Environment files and secrets
+frontend/.env*
+frontend/*.key
+frontend/src/firebase-config.js
+frontend/src/firebase.js
+frontend/*.pem
+frontend/credentials.json
+
+# Misc frontend
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+node_modules/
+
+# ===================== #
+#     System/Editor     #
+# ===================== #
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# VSCode settings (optional)
+.vscode/
+
+# Log files
+*.log
+.cache/
+
+# Security and credentials
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+token.json
+*service-account*.json
+.env*
+config.json
