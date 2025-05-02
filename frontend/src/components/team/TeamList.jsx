@@ -27,6 +27,7 @@ function TeamList({ hackathonId, onTeamJoined }) {
   const [filteredTeams, setFilteredTeams] = useState([]);
   const [userInHackathonTeam, setUserInHackathonTeam] = useState(false);
   const [success, setSuccess] = useState("");
+  const [sendingRequestTo, setSendingRequestTo] = useState(null);
 
   useEffect(() => {
     fetchTeams();
@@ -315,6 +316,67 @@ function TeamList({ hackathonId, onTeamJoined }) {
     }
   };
 
+  // Add new function to handle sending join requests to users
+  const handleSendJoinRequest = async (userId) => {
+    if (!currentUser) return;
+    
+    setSendingRequestTo(userId);
+    setError("");
+    
+    try {
+      // Check if user is already in a team for this hackathon
+      const teamsQuery = query(
+        collection(db, "teams"),
+        where("hackathonId", "==", hackathonId)
+      );
+      const teamsSnapshot = await getDocs(teamsQuery);
+      
+      const userInTeam = teamsSnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .some(
+          (team) =>
+            team.members &&
+            team.members.some(
+              (member) => member.userId === userId && !member.isDeleted
+            )
+        );
+      
+      if (userInTeam) {
+        throw new Error("This user is already in a team for this hackathon");
+      }
+      
+      // Check if there's already a pending join request to this user
+      const existingRequestQuery = query(
+        collection(db, "joinRequests"),
+        where("teamId", "==", team.id),
+        where("userId", "==", userId),
+        where("status", "==", "pending")
+      );
+      const existingRequestSnapshot = await getDocs(existingRequestQuery);
+      
+      if (!existingRequestSnapshot.empty) {
+        throw new Error("You already have a pending join request to this user");
+      }
+      
+      // Create a new join request
+      await addDoc(collection(db, "joinRequests"), {
+        teamId: team.id,
+        userId,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        isLeaderRequest: true, // Flag to indicate this is a request from a team leader
+      });
+      
+      setSuccess("Join request sent successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error sending join request:", err);
+      setError(err.message);
+    } finally {
+      setSendingRequestTo(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100">
@@ -543,12 +605,20 @@ function TeamList({ hackathonId, onTeamJoined }) {
                   </button>
                 )}
                 {isUserInTeam && userRole === "leader" && (
-                  <Link
-                    to={`/team/${team.id}/requests`}
-                    className="bg-[#FBE4D6] text-[#0C0950] px-4 py-2 rounded hover:bg-[#f5d5c3] transition-colors"
-                  >
-                    Manage Requests
-                  </Link>
+                  <>
+                    <Link
+                      to={`/team/${team.id}/requests`}
+                      className="bg-[#FBE4D6] text-[#0C0950] px-4 py-2 rounded hover:bg-[#f5d5c3] transition-colors mr-2"
+                    >
+                      Manage Requests
+                    </Link>
+                    <button
+                      onClick={() => navigate(`/team/${team.id}/invite`)}
+                      className="bg-[#261FB3] text-white px-4 py-2 rounded hover:bg-[#161179] transition-colors"
+                    >
+                      Invite Members
+                    </button>
+                  </>
                 )}
               </div>
             </div>

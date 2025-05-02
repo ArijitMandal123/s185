@@ -464,60 +464,41 @@ function ResourcesPage() {
       </p>
       
       {/* Search and filter section */}
-      <div className="mb-12 bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Search input with enhanced styling */}
-          <div className="flex-1 relative group">
-            <label htmlFor="search" className="block text-sm font-semibold text-gray-700 mb-2">
-              Search
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-              </div>
-              <input
-                id="search"
-                type="text"
-                className="block w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-lg leading-5 bg-white 
-                  transition-all duration-200
-                  focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200
-                  hover:border-indigo-300 sm:text-sm"
-                placeholder="Search resources..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+      <div className="mb-12 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
             </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Search resources..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-
-          {/* Category filter with enhanced styling */}
+          
           <div className="flex-1">
-            <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-2">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
               Filter by Category
             </label>
-            <div className="relative">
-              <select
-                id="category"
-                className="block w-full pl-4 pr-10 py-3 border-2 border-gray-200 rounded-lg leading-5 bg-white 
-                transition-all duration-200 appearance-none cursor-pointer
-                focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200
-                hover:border-indigo-300 sm:text-sm"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                <ChevronDown className="h-5 w-5 text-gray-400" />
-              </div>
-            </div>
+            <select
+              id="category"
+              className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              {categories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
-
+      
       {/* Hackathon Preparation Resources */}
       <ResourceSection id="hackathonPrep" title="Hackathon Preparation Resources">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

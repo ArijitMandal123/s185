@@ -8,6 +8,7 @@ import {
   doc,
   updateDoc,
   arrayUnion,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useAuth } from "../../contexts/AuthContext";
@@ -53,6 +54,16 @@ function TeamForm({ hackathonId, onSuccess }) {
             id: profileSnapshot.docs[0].id,
             ...profileData,
           });
+        } else {
+          // If no profile found with userId, try to find by document ID
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            const profileData = userDoc.data();
+            setUserProfile({
+              id: userDoc.id,
+              ...profileData,
+            });
+          }
         }
       } catch (err) {
         console.error("Error fetching user profile:", err);
