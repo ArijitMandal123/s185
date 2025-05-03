@@ -18,10 +18,12 @@ function TeamJoinRequestsPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [requests, setRequests] = useState([]);
+  const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState("incoming"); // "incoming" or "outgoing"
 
   useEffect(() => {
     fetchTeamAndRequests();
@@ -46,16 +48,17 @@ function TeamJoinRequestsPage() {
         throw new Error("Only team leaders can manage join requests");
       }
 
-      // Fetch join requests
-      const requestsQuery = query(
+      // Fetch incoming join requests
+      const incomingRequestsQuery = query(
         collection(db, "joinRequests"),
         where("teamId", "==", teamId),
-        where("status", "==", "pending")
+        where("status", "==", "pending"),
+        where("isLeaderRequest", "==", false)
       );
-      const requestsSnapshot = await getDocs(requestsQuery);
+      const incomingRequestsSnapshot = await getDocs(incomingRequestsQuery);
 
-      const requestsData = await Promise.all(
-        requestsSnapshot.docs.map(async (requestDoc) => {
+      const incomingRequestsData = await Promise.all(
+        incomingRequestsSnapshot.docs.map(async (requestDoc) => {
           const requestData = requestDoc.data();
           const userDoc = await getDoc(doc(db, "users", requestData.userId));
           const userData = userDoc.exists() ? userDoc.data() : null;
@@ -73,7 +76,37 @@ function TeamJoinRequestsPage() {
         })
       );
 
-      setRequests(requestsData);
+      setRequests(incomingRequestsData);
+
+      // Fetch outgoing join requests
+      const outgoingRequestsQuery = query(
+        collection(db, "joinRequests"),
+        where("teamId", "==", teamId),
+        where("status", "==", "pending"),
+        where("isLeaderRequest", "==", true)
+      );
+      const outgoingRequestsSnapshot = await getDocs(outgoingRequestsQuery);
+
+      const outgoingRequestsData = await Promise.all(
+        outgoingRequestsSnapshot.docs.map(async (requestDoc) => {
+          const requestData = requestDoc.data();
+          const userDoc = await getDoc(doc(db, "users", requestData.userId));
+          const userData = userDoc.exists() ? userDoc.data() : null;
+          
+          return {
+            id: requestDoc.id,
+            ...requestData,
+            user: {
+              displayName: userData?.name || userData?.displayName || "Unknown User",
+              points: userData?.points || 0,
+              bio: userData?.bio || "",
+              skills: userData?.skills || [],
+            },
+          };
+        })
+      );
+
+      setOutgoingRequests(outgoingRequestsData);
     } catch (err) {
       console.error("Error fetching team and requests:", err);
       setError(err.message);
@@ -151,6 +184,26 @@ function TeamJoinRequestsPage() {
     }
   };
 
+  const handleCancelRequest = async (requestId) => {
+    setProcessing(true);
+    setError("");
+
+    try {
+      await updateDoc(doc(db, "joinRequests", requestId), {
+        status: "cancelled",
+        processedAt: new Date().toISOString(),
+      });
+
+      // Refresh data
+      await fetchTeamAndRequests();
+    } catch (err) {
+      console.error("Error cancelling request:", err);
+      setError(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -207,66 +260,146 @@ function TeamJoinRequestsPage() {
             </div>
           )}
 
-          {requests.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">No pending join requests</p>
+          <div className="mb-6">
+            <div className="flex border-b border-gray-200">
+              <button
+                className={`px-4 py-2 font-medium ${
+                  activeTab === "incoming"
+                    ? "text-[#261FB3] border-b-2 border-[#261FB3]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("incoming")}
+              >
+                Incoming Requests
+              </button>
+              <button
+                className={`px-4 py-2 font-medium ${
+                  activeTab === "outgoing"
+                    ? "text-[#261FB3] border-b-2 border-[#261FB3]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("outgoing")}
+              >
+                Outgoing Invites
+              </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {requests.map((request) => (
-                <div
-                  key={request.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 
-                        onClick={() => navigate(`/profile/${request.userId}`)}
-                        className="text-lg font-medium text-[#0C0950] hover:text-[#261FB3] cursor-pointer transition-colors"
-                      >
-                        {request.user.displayName}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Points: {request.user.points}
-                      </p>
-                      {request.user.bio && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {request.user.bio}
+          </div>
+
+          {activeTab === "incoming" ? (
+            requests.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No pending join requests</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {requests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 
+                          onClick={() => navigate(`/profile/${request.userId}`)}
+                          className="text-lg font-medium text-[#0C0950] hover:text-[#261FB3] cursor-pointer transition-colors"
+                        >
+                          {request.user.displayName}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Points: {request.user.points}
                         </p>
-                      )}
-                      {request.user.skills && request.user.skills.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {request.user.skills.map((skill, index) => (
-                            <span
-                              key={index}
-                              className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                        {request.user.bio && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {request.user.bio}
+                          </p>
+                        )}
+                        {request.user.skills && request.user.skills.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {request.user.skills.map((skill, index) => (
+                              <span
+                                key={index}
+                                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleAcceptRequest(request.id, request.userId)}
+                          disabled={processing}
+                          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(request.id)}
+                          disabled={processing}
+                          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            outgoingRequests.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No pending invites</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {outgoingRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 
+                          onClick={() => navigate(`/profile/${request.userId}`)}
+                          className="text-lg font-medium text-[#0C0950] hover:text-[#261FB3] cursor-pointer transition-colors"
+                        >
+                          {request.user.displayName}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Points: {request.user.points}
+                        </p>
+                        {request.user.bio && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {request.user.bio}
+                          </p>
+                        )}
+                        {request.user.skills && request.user.skills.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {request.user.skills.map((skill, index) => (
+                              <span
+                                key={index}
+                                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <button
-                        onClick={() => handleAcceptRequest(request.id, request.userId)}
+                        onClick={() => handleCancelRequest(request.id)}
                         disabled={processing}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50"
+                        className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors disabled:opacity-50"
                       >
-                        Accept
-                      </button>
-                      <button
-                        onClick={() => handleRejectRequest(request.id)}
-                        disabled={processing}
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
-                      >
-                        Reject
+                        Cancel Invite
                       </button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>

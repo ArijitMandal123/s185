@@ -21,7 +21,8 @@ import { useNavigate } from "react-router-dom";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import ResourcesPage from "./pages/ResourcesPage"; // Import ResourcesPage
 import AdminPage from "./pages/AdminPage"; // Import AdminPage
-import AboutPage from "./pages/AboutPage"; 
+import TeamInvitePage from "./pages/TeamInvitePage";
+import NotificationBell from "./components/notifications/NotificationBell";
 
 function AppContent() {
   const { currentUser, logout } = useAuth();
@@ -45,7 +46,7 @@ function AppContent() {
             to="/"
             className="text-[#261FB3] font-bold text-xl flex items-center"
           >
-            {/* <FontAwesomeIcon icon="fa-regular fa-handshake" /> */}
+            <span className="text-[#261FB3] mr-2 font-mono">&lt;/&gt;</span>
             Hackathon Teammate Finder
           </Link>
           
@@ -76,7 +77,7 @@ function AppContent() {
                 >
                   Resources
                 </Link>
-                
+                <NotificationBell />
                 <button
                   onClick={handleLogout}
                   className="ml-4 bg-[#261FB3] hover:bg-[#161179] text-white px-4 py-2 rounded transition-colors duration-300"
@@ -145,6 +146,10 @@ function AppContent() {
           path="/team/:teamId/requests"
           element={<TeamJoinRequestsPage />}
         />
+        <Route
+          path="/team/:teamId/invite"
+          element={<TeamInvitePage />}
+        />
         <Route path="/team/:teamId/chat" element={<TeamChat />} />
         <Route
           path="/add-hackathon"
@@ -153,7 +158,6 @@ function AppContent() {
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
         <Route path="/admin" element={<AdminPage />} />
-        <Route path="/about" element={<AboutPage/>} />
       </Routes>
     </div>
   );

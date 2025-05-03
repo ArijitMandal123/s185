@@ -2,10 +2,14 @@ import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase"; // Import db from firebase.js
 import { doc, setDoc } from "firebase/firestore"; // Correct imports from firebase/firestore
+import { useNavigate } from "react-router-dom"; // Add this import
 
 function ProfileForm() {
+  const navigate = useNavigate(); // Add this line
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [techStack, setTechStack] = useState("");
   const [preferences, setPreferences] = useState("");
   const [mode, setMode] = useState("");
@@ -15,7 +19,7 @@ function ProfileForm() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const { userId } = useAuth(); // Get userId from AuthContext
+  const { signup } = useAuth(); // Get signup function from AuthContext
 
   // New state variables for additional fields
   const [role, setRole] = useState("");
@@ -37,15 +41,27 @@ function ProfileForm() {
     setSuccessMessage("");
     setLoading(true);
 
-    if (!userId) {
-      setError("User not logged in.");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
       setLoading(false);
       return;
     }
 
     try {
+      // Create user with Firebase Authentication
+      const userCredential = await signup(email, password, name);
+      const userId = userCredential.user.uid;
+
+      // Create user profile in Firestore
       const userDocRef = doc(db, "users", userId);
       await setDoc(userDocRef, {
+        userId,
         name,
         email,
         bio,
@@ -58,9 +74,7 @@ function ProfileForm() {
         role,
         experience,
         availability,
-        projectInterests: projectInterests
-          .split(",")
-          .map((item) => item.trim()),
+        projectInterests: projectInterests.split(",").map((item) => item.trim()),
         communicationStyle,
         timezone,
         languages: languages.split(",").map((item) => item.trim()),
@@ -74,6 +88,8 @@ function ProfileForm() {
       // Reset form fields
       setName("");
       setEmail("");
+      setPassword("");
+      setConfirmPassword("");
       setBio("");
       setTechStack("");
       setPreferences("");
@@ -91,6 +107,9 @@ function ProfileForm() {
       setPortfolio("");
       setTeamSize("");
       setProjectDuration("");
+
+      // Navigate to root directory after successful profile creation
+      navigate("/");
     } catch (firebaseError) {
       setError("Failed to create profile: " + firebaseError.message);
     } finally {
@@ -217,6 +236,34 @@ function ProfileForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputStyle}
                 required
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className={labelStyle}>
+                Password *
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputStyle}
+                required
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className={labelStyle}>
+                Confirm Password *
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={inputStyle}
+                required
+                minLength={6}
               />
             </div>
           </div>
